@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { authApi } from '../api/authApi';
 
 function LoginPage({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,9 +13,6 @@ function LoginPage({ onLogin }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  // 添加Railway后端地址常量
-  const RAILWAY_API_BASE = 'https://498-ai-client.up.railway.app/api';
 
   const handleInputChange = (e) => {
     setFormData({
@@ -30,18 +27,21 @@ function LoginPage({ onLogin }) {
     setLoading(true);
 
     try {
-      const endpoint = isLogin ? '/login' : '/register';
-      const payload = isLogin 
-        ? { username: formData.username, password: formData.password }
-        : formData;
-
-      const response = await axios.post(`${RAILWAY_API_BASE}${endpoint}`, payload, {
-        withCredentials: true
-      });
-
-      if (response.data.user) {
-        onLogin(response.data.user);
-        navigate('/');
+      if (isLogin) {
+        const userData = await authApi.login({
+          username: formData.username,
+          password: formData.password
+        });
+        if (userData.user) {
+          onLogin(userData.user);
+          navigate('/');
+        }
+      } else {
+        const userData = await authApi.register(formData);
+        if (userData.user) {
+          onLogin(userData.user);
+          navigate('/');
+        }
       }
     } catch (err) {
       setError(err.response?.data?.error || 'An error occurred');

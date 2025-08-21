@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import ChatInput from '../components/chatinput';
 import MessageBubble from '../components/messagebubble';
 import { Link } from 'react-router-dom';
+import { hybridSearchFaqs } from '../api/faqApi';
 
 import axios from 'axios';
 
@@ -125,13 +126,16 @@ function ChatPage({ user, onLogout }) {
         requestData.session_id = currentSession;
       }
       
-      // Call the AI chat API
-      const response = await axios.post(`${RAILWAY_API_BASE}/chat`, requestData, {
-        withCredentials: true
-      });
+      // Call the hybrid FAQ search API (database first, then AI fallback)
+      const response = await hybridSearchFaqs(input);
       
       const result = response.data;
       let botMessage = result.answer;
+      
+      // Add session info if available
+      if (isSessionActive && currentSession) {
+        result.session_id = currentSession;
+      }
       
       // Check if human assistance is required
       if (result.requires_human) {
@@ -145,7 +149,8 @@ function ChatPage({ user, onLogout }) {
             similarity: result.similarity,
             requiresHuman: true,
             emotionAnalysis: result.emotion_analysis,
-            sessionId: result.session_id
+            sessionId: result.session_id,
+            strategy: result.strategy
           }
         ]);
       } else {
@@ -159,7 +164,8 @@ function ChatPage({ user, onLogout }) {
             similarity: result.similarity,
             requiresHuman: false,
             emotionAnalysis: result.emotion_analysis,
-            sessionId: result.session_id
+            sessionId: result.session_id,
+            strategy: result.strategy
           }
         ]);
       }

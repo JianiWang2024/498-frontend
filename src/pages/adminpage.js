@@ -27,8 +27,9 @@ function AdminPage({ user, onLogout }) {
       const res = await getFaqs();
       setFaqs(res.data);
       setLoading(false);
+      setError(null);
     } catch (err) {
-      alert('Failed to get FAQs. Please try again later.');
+      setError('Failed to get FAQs. Please try again later.');
       setLoading(false);
     }
   };
@@ -40,9 +41,10 @@ function AdminPage({ user, onLogout }) {
       await addFaq({ question, answer });
       setQuestion('');
       setAnswer('');
+      setError(null);
       fetchFaqs();
     } catch (err) {
-      alert('Failed to add FAQ. Please try again later.');
+      setError('Failed to add FAQ. Please try again later.');
     }
   };
 
@@ -50,9 +52,10 @@ function AdminPage({ user, onLogout }) {
   const handleDelete = async (id) => {
     try {
       await deleteFaq(id);
+      setError(null);
       fetchFaqs();
     } catch (err) {
-      alert('Failed to delete FAQ. Please try again later.');
+      setError('Failed to delete FAQ. Please try again later.');
     }
   };
   

@@ -42,28 +42,62 @@ function ChartDashboard() {
     // Fetch top questions data
     axios.get(`${RAILWAY_API_BASE}/top-questions`)
       .then(response => {
-        setTopQuestions(response.data);
+        if (response.data && Array.isArray(response.data)) {
+          setTopQuestions(response.data);
+        } else {
+          console.warn('Top questions data is not an array:', response.data);
+          setTopQuestions([]);
+        }
       })
       .catch(error => {
         console.error('Error fetching top questions:', error);
+        setTopQuestions([]);
       });
 
     // Fetch daily question counts
     axios.get(`${RAILWAY_API_BASE}/daily-question-counts`)
       .then(response => {
-        setDailyCounts(response.data);
+        if (response.data && response.data.datasets) {
+          setDailyCounts(response.data);
+        } else {
+          console.warn('Daily counts data format is incorrect:', response.data);
+          setDailyCounts({
+            labels: [],
+            datasets: [{
+              label: 'Questions',
+              data: [],
+              borderColor: '#667eea',
+              backgroundColor: 'rgba(102, 126, 234, 0.1)'
+            }]
+          });
+        }
       })
       .catch(error => {
         console.error('Error fetching daily counts:', error);
+        setDailyCounts({
+          labels: [],
+          datasets: [{
+            label: 'Questions',
+            data: [],
+            borderColor: '#667eea',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)'
+          }]
+        });
       });
 
     // Fetch CSAT data
     axios.get(`${RAILWAY_API_BASE}/csat`)
       .then(response => {
-        setCsat(response.data.csat);
+        if (response.data && typeof response.data.csat === 'number') {
+          setCsat(response.data.csat);
+        } else {
+          console.warn('CSAT data format is incorrect:', response.data);
+          setCsat(0);
+        }
       })
       .catch(error => {
         console.error('Error fetching CSAT data:', error);
+        setCsat(0);
       });
   }, []);
 
@@ -76,16 +110,29 @@ function ChartDashboard() {
         <div className="chart-box" style={{ flex: 1 }}>
           <h3>Top 5 Asked Questions</h3>
           <div style={{ height: '250px' }}>
-            {topQuestions ? (
+            {topQuestions && topQuestions.length > 0 ? (
               <Bar
-                data={topQuestions}
+                data={{
+                  labels: topQuestions.map(q => q.question || 'Unknown'),
+                  datasets: [{
+                    label: 'Count',
+                    data: topQuestions.map(q => q.count || 0),
+                    backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                    borderColor: '#667eea',
+                    borderWidth: 1
+                  }]
+                }}
                 options={{
                   maintainAspectRatio: false,
                   plugins: { legend: { position: 'top' } },
                   scales: { y: { beginAtZero: true } }
                 }}
               />
-            ) : <p>Loading top questions...</p>}
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                <p>No data available</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -93,7 +140,7 @@ function ChartDashboard() {
         <div className="chart-box" style={{ flex: 1 }}>
           <h3>Daily Question Volume (7 Days)</h3>
           <div style={{ height: '250px' }}>
-            {dailyCounts ? (
+            {dailyCounts && dailyCounts.datasets && dailyCounts.datasets[0] && dailyCounts.datasets[0].data && dailyCounts.datasets[0].data.length > 0 ? (
               <Line
                 data={dailyCounts}
                 options={{
@@ -102,7 +149,11 @@ function ChartDashboard() {
                   scales: { y: { beginAtZero: true } }
                 }}
               />
-            ) : <p>Loading daily question trends...</p>}
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                <p>No data available</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -110,7 +161,7 @@ function ChartDashboard() {
       {/* CSAT Section */}
       <div className="chart-box" style={{ marginBottom: '2em' }}>
         <h3>Customer Satisfaction Score (CSAT)</h3>
-        {csat !== null ? (
+        {csat !== null && csat >= 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '2em' }}>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: '48px', fontWeight: 'bold', margin: '0', color: '#667eea' }}>{csat}%</p>
@@ -121,7 +172,7 @@ function ChartDashboard() {
                 data={{
                   labels: ['Satisfied', 'Unsatisfied'],
                   datasets: [{
-                    data: [csat, 100 - csat],
+                    data: [csat, Math.max(0, 100 - csat)],
                     backgroundColor: ['#667eea', '#e2e8f0']
                   }]
                 }}
@@ -140,7 +191,11 @@ function ChartDashboard() {
               />
             </div>
           </div>
-        ) : <p>Loading CSAT...</p>}
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px' }}>
+            <p>No CSAT data available</p>
+          </div>
+        )}
       </div>
     </div>
   );
